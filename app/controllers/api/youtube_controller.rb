@@ -5,7 +5,7 @@ require "cgi"
 class Api::YoutubeController < ApplicationController
   def first
     query = params[:query].to_s.strip
-    return render json: { error: "missing_query" }, status: :unprocessable_entity if query.blank?
+    return render json: {error: "missing_query"}, status: :unprocessable_entity if query.blank?
 
     # YouTube search HTML is not a stable API, but we only need the first video id.
     # Use the title as-is; adding extra terms can change the top result.
@@ -13,20 +13,20 @@ class Api::YoutubeController < ApplicationController
     search_url = "https://www.youtube.com/results?search_query=#{URI.encode_www_form_component(search_query)}"
 
     fetch = fetch_limited_html(search_url)
-    fetch_meta = fetch.is_a?(Hash) ? fetch.dup.tap { |h| h.delete(:body) } : { error: "unexpected_fetch_return", class: fetch.class.name }
-    return render json: { query: query, error: "fetch_failed", fetch: fetch_meta }, status: :bad_gateway if !fetch.is_a?(Hash) || fetch[:body].nil?
+    fetch_meta = fetch.is_a?(Hash) ? fetch.dup.tap { |h| h.delete(:body) } : {error: "unexpected_fetch_return", class: fetch.class.name}
+    return render json: {query: query, error: "fetch_failed", fetch: fetch_meta}, status: :bad_gateway if !fetch.is_a?(Hash) || fetch[:body].nil?
 
     video_id = extract_first_video_id(fetch[:body])
-    return render json: { query: query, error: "no_results", fetch: fetch_meta }, status: :not_found if video_id.nil?
+    return render json: {query: query, error: "no_results", fetch: fetch_meta}, status: :not_found if video_id.nil?
 
     url = "https://www.youtube.com/watch?v=#{video_id}"
     embed_url = "https://www.youtube.com/embed/#{video_id}?autoplay=1&playsinline=1&mute=0"
 
-    render json: { query: query, videoId: video_id, url: url, embedUrl: embed_url, fetch: fetch_meta }
+    render json: {query: query, videoId: video_id, url: url, embedUrl: embed_url, fetch: fetch_meta}
   rescue Net::OpenTimeout, Net::ReadTimeout
-    render json: { query: query, error: "timeout" }, status: :gateway_timeout
+    render json: {query: query, error: "timeout"}, status: :gateway_timeout
   rescue => e
-    render json: { query: query, error: "error", message: e.message }, status: :bad_gateway
+    render json: {query: query, error: "error", message: e.message}, status: :bad_gateway
   end
 
   private
@@ -42,7 +42,7 @@ class Api::YoutubeController < ApplicationController
 
   def fetch_limited_html(str, redirects: [], depth: 0)
     uri = safe_http_uri(str)
-    return { body: nil, final_url: str, status: nil, redirects: redirects, error: "invalid_url" } if uri.nil?
+    return {body: nil, final_url: str, status: nil, redirects: redirects, error: "invalid_url"} if uri.nil?
 
     body = +""
     max_bytes = 1_000_000
@@ -57,54 +57,58 @@ class Api::YoutubeController < ApplicationController
 
       begin
         http.request(req) do |res|
-        status = res.code.to_i
+          status = res.code.to_i
 
-        # Be explicit about OK to avoid any framework/tooling confusion.
-        ok = res.is_a?(Net::HTTPOK) || res.is_a?(Net::HTTPSuccess)
-        redirect = res.is_a?(Net::HTTPRedirection)
+          # Be explicit about OK to avoid any framework/tooling confusion.
+          ok = res.is_a?(Net::HTTPOK) || res.is_a?(Net::HTTPSuccess)
+          redirect = res.is_a?(Net::HTTPRedirection)
 
-        unless ok || redirect
-          result = { body: nil, final_url: uri.to_s, status: status, redirects: redirects, error: "http_error" }
-          next
-        end
-
-        if redirect
-          location = res["location"].to_s
-          next_uri = safe_http_uri(URI.join(uri.to_s, location).to_s) rescue nil
-          if next_uri.nil?
-            result = { body: nil, final_url: uri.to_s, status: status, redirects: redirects, error: "bad_redirect", location: location }
+          unless ok || redirect
+            result = {body: nil, final_url: uri.to_s, status: status, redirects: redirects, error: "http_error"}
             next
           end
 
-          redirects = redirects + [{ from: uri.to_s, to: next_uri.to_s, status: status }]
-          if depth >= 3
-            result = { body: nil, final_url: next_uri.to_s, status: status, redirects: redirects, error: "too_many_redirects" }
+          if redirect
+            location = res["location"].to_s
+            next_uri = begin
+              safe_http_uri(URI.join(uri.to_s, location).to_s)
+            rescue
+              nil
+            end
+            if next_uri.nil?
+              result = {body: nil, final_url: uri.to_s, status: status, redirects: redirects, error: "bad_redirect", location: location}
+              next
+            end
+
+            redirects += [{from: uri.to_s, to: next_uri.to_s, status: status}]
+            if depth >= 3
+              result = {body: nil, final_url: next_uri.to_s, status: status, redirects: redirects, error: "too_many_redirects"}
+              next
+            end
+
+            result = fetch_limited_html(next_uri.to_s, redirects: redirects, depth: depth + 1)
             next
           end
 
-          result = fetch_limited_html(next_uri.to_s, redirects: redirects, depth: depth + 1)
-          next
-        end
+          res.read_body do |chunk|
+            body << chunk
+            break if body.bytesize > max_bytes
+          end
 
-        res.read_body do |chunk|
-          body << chunk
-          break if body.bytesize > max_bytes
-        end
-
-        result = { body: body, final_url: uri.to_s, status: status, redirects: redirects }
+          result = {body: body, final_url: uri.to_s, status: status, redirects: redirects}
         end
       rescue Net::HTTPBadResponse => e
-        result = { body: nil, final_url: uri.to_s, status: nil, redirects: redirects, error: "bad_response", exception: e.class.name, message: e.message }
+        result = {body: nil, final_url: uri.to_s, status: nil, redirects: redirects, error: "bad_response", exception: e.class.name, message: e.message}
       rescue EOFError, Errno::ECONNRESET, Errno::EPIPE, IOError => e
-        result = { body: nil, final_url: uri.to_s, status: nil, redirects: redirects, error: "io_error", exception: e.class.name, message: e.message }
+        result = {body: nil, final_url: uri.to_s, status: nil, redirects: redirects, error: "io_error", exception: e.class.name, message: e.message}
       end
     end
 
-    result || { body: nil, final_url: uri.to_s, status: nil, redirects: redirects, error: "no_response" }
+    result || {body: nil, final_url: uri.to_s, status: nil, redirects: redirects, error: "no_response"}
   rescue Net::OpenTimeout, Net::ReadTimeout => e
-    { body: nil, final_url: uri&.to_s || str, status: nil, redirects: redirects, error: "timeout", exception: e.class.name, message: e.message }
+    {body: nil, final_url: uri&.to_s || str, status: nil, redirects: redirects, error: "timeout", exception: e.class.name, message: e.message}
   rescue => e
-    { body: nil, final_url: uri&.to_s || str, status: nil, redirects: redirects, error: "exception", exception: e.class.name, message: e.message }
+    {body: nil, final_url: uri&.to_s || str, status: nil, redirects: redirects, error: "exception", exception: e.class.name, message: e.message}
   end
 
   def extract_first_video_id(html)
@@ -124,4 +128,3 @@ class Api::YoutubeController < ApplicationController
     match && match[1]
   end
 end
-

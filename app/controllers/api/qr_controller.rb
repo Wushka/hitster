@@ -6,18 +6,18 @@ class Api::QrController < ApplicationController
   def title
     url = params[:url].to_s
     uri = safe_http_uri(url)
-    return render json: { error: "invalid_url" }, status: :unprocessable_entity if uri.nil?
+    return render json: {error: "invalid_url"}, status: :unprocessable_entity if uri.nil?
 
     html = fetch_limited_html(uri)
-    return render json: { url: url, title: nil, error: "fetch_failed" }, status: :bad_gateway if html.nil?
+    return render json: {url: url, title: nil, error: "fetch_failed"}, status: :bad_gateway if html.nil?
 
     title = extract_title(html)
-    render json: { url: url, title: title }
+    render json: {url: url, title: title}
   end
 
   def query
     title = params[:title].to_s.strip
-    return render json: { error: "missing_title" }, status: :unprocessable_entity if title.blank?
+    return render json: {error: "missing_title"}, status: :unprocessable_entity if title.blank?
 
     template = ENV["HITSTER_OTHER_API_URL_TEMPLATE"].to_s
     base_url = ENV["HITSTER_OTHER_API_BASE_URL"].to_s
@@ -27,17 +27,15 @@ class Api::QrController < ApplicationController
         template.gsub("{{query}}", ERB::Util.url_encode(title))
       elsif base_url.present?
         "#{base_url}#{base_url.include?("?") ? "&" : "?"}q=#{ERB::Util.url_encode(title)}"
-      else
-        nil
       end
 
-    return render json: { error: "other_api_not_configured" }, status: :not_implemented if target.nil?
+    return render json: {error: "other_api_not_configured"}, status: :not_implemented if target.nil?
 
     uri = safe_http_uri(target)
-    return render json: { error: "invalid_other_api_url" }, status: :unprocessable_entity if uri.nil?
+    return render json: {error: "invalid_other_api_url"}, status: :unprocessable_entity if uri.nil?
 
     response = Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: 5, read_timeout: 10) do |http|
-      http.get(uri.request_uri, { "Accept" => "application/json" })
+      http.get(uri.request_uri, {"Accept" => "application/json"})
     end
 
     render json: {
@@ -48,9 +46,9 @@ class Api::QrController < ApplicationController
       body: safe_parse_json(response.body)
     }
   rescue Net::OpenTimeout, Net::ReadTimeout
-    render json: { error: "other_api_timeout" }, status: :gateway_timeout
+    render json: {error: "other_api_timeout"}, status: :gateway_timeout
   rescue => e
-    render json: { error: "other_api_error", message: e.message }, status: :bad_gateway
+    render json: {error: "other_api_error", message: e.message}, status: :bad_gateway
   end
 
   private
@@ -68,13 +66,17 @@ class Api::QrController < ApplicationController
     body = +""
 
     Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", open_timeout: 5, read_timeout: 10) do |http|
-      req = Net::HTTP::Get.new(uri.request_uri, { "User-Agent" => "Hitster/1.0", "Accept" => "text/html,application/xhtml+xml" })
+      req = Net::HTTP::Get.new(uri.request_uri, {"User-Agent" => "Hitster/1.0", "Accept" => "text/html,application/xhtml+xml"})
       http.request(req) do |res|
         return nil unless res.is_a?(Net::HTTPSuccess) || res.is_a?(Net::HTTPRedirection)
 
         if res.is_a?(Net::HTTPRedirection)
           location = res["location"].to_s
-          next_uri = safe_http_uri(URI.join(uri.to_s, location).to_s) rescue nil
+          next_uri = begin
+            safe_http_uri(URI.join(uri.to_s, location).to_s)
+          rescue
+            nil
+          end
           return nil if next_uri.nil?
           return fetch_limited_html(next_uri)
         end
@@ -103,7 +105,7 @@ class Api::QrController < ApplicationController
     # If the title has embedded tags, strip them (rare, but makes output safer).
     title = title.gsub(/<[^>]+>/, " ")
     # Normalize non-breaking spaces and whitespace.
-    title = title.gsub(/\u00A0/, " ")
+    title = title.tr("\u00A0", " ")
     title = title.gsub(/\s+/, " ").strip
     title.presence
   end
@@ -114,4 +116,3 @@ class Api::QrController < ApplicationController
     body.to_s
   end
 end
-
