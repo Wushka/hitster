@@ -1,0 +1,61 @@
+<main class="container" data-controller="hello">
+  <header class="header">
+    <h1 class="title">Hitster</h1>
+    <p class="subtitle">Scan a QR code → fetch page title → play the first matching YouTube track.</p>
+  </header>
+
+  <section class="card">
+    <div class="row">
+      <button class="button" type="button" data-hello-target="startButton">Start camera</button>
+      <button class="button secondary" type="button" data-hello-target="stopButton">Stop</button>
+      <span class="status" data-hello-target="status">Idle</span>
+    </div>
+
+    <div class="videoWrap">
+      <video class="video" playsinline autoplay muted data-hello-target="video"></video>
+      <canvas class="hidden" data-hello-target="canvas"></canvas>
+    </div>
+
+    <div class="results">
+      <div class="kv">
+        <div class="k">QR URL</div>
+        <div class="v"><a data-hello-target="qrUrl" href="about:blank" target="_blank" rel="noreferrer">—</a></div>
+      </div>
+      <div class="kv">
+        <div class="k">Page title</div>
+        <div class="v" data-hello-target="pageTitle">—</div>
+      </div>
+      <div class="kv">
+        <div class="k">YouTube first result</div>
+        <pre class="pre" data-hello-target="youtubeResult">—</pre>
+      </div>
+
+      <div class="kv" style="grid-column: 1 / -1;">
+        <div class="k">Play on YouTube</div>
+        <div class="v">
+          <div class="row" style="margin: 10px 0 0;">
+            <button class="button" type="button" data-hello-target="youtubePlay" disabled>
+              Play music
+            </button>
+            <a class="button secondary" data-hello-target="youtubeLink" href="about:blank" target="_blank" rel="noreferrer" style="text-decoration: none; display: inline-flex; align-items: center;">
+              Open video
+            </a>
+          </div>
+        </div>
+        <div class="youtubePlayer" style="margin-top: 12px;">
+          <iframe
+            class="youtubeFrame"
+            data-hello-target="youtubeFrame"
+            width="560"
+            height="315"
+            frameborder="0"
+            allow="autoplay; encrypted-media"
+            allowfullscreen
+            title="YouTube player"
+            src="about:blank"
+          ></iframe>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>

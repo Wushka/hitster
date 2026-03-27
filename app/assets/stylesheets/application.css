@@ -1,0 +1,109 @@
+/*
+ * This is a manifest file that'll be compiled into application.css.
+ *
+ * With Propshaft, assets are served efficiently without preprocessing steps. You can still include
+ * application-wide styles in this file, but keep in mind that CSS precedence will follow the standard
+ * cascading order, meaning styles declared later in the document or manifest will override earlier ones,
+ * depending on specificity.
+ *
+ * Consider organizing styles into separate files for maintainability.
+ */
+
+:root {
+  color-scheme: dark;
+  --bg: #0b1220;
+  --card: rgba(255, 255, 255, 0.06);
+  --border: rgba(255, 255, 255, 0.12);
+  --text: rgba(255, 255, 255, 0.92);
+  --muted: rgba(255, 255, 255, 0.7);
+  --accent: #6ee7ff;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: radial-gradient(800px 500px at 15% 0%, rgba(110,231,255,0.22), transparent 55%),
+              radial-gradient(800px 500px at 85% 15%, rgba(124,58,237,0.22), transparent 60%),
+              var(--bg);
+  color: var(--text);
+  font: 16px/1.45 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 28px 18px 60px;
+}
+
+.header { margin-bottom: 18px; }
+.title { margin: 0; letter-spacing: 0.2px; }
+.subtitle { margin: 8px 0 0; color: var(--muted); }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 16px;
+  backdrop-filter: blur(10px);
+}
+
+.row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.button {
+  appearance: none;
+  border: 1px solid rgba(110,231,255,0.35);
+  background: rgba(110,231,255,0.12);
+  color: var(--text);
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 650;
+}
+.button.secondary {
+  border-color: rgba(255,255,255,0.22);
+  background: rgba(255,255,255,0.08);
+  font-weight: 600;
+}
+.button:disabled { opacity: 0.55; cursor: not-allowed; }
+
+.status {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.videoWrap {
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.25);
+}
+.video {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(60vh, 520px);
+  object-fit: cover;
+}
+.hidden { display: none; }
+
+.results { margin-top: 14px; display: grid; gap: 12px; }
+.kv { display: grid; gap: 6px; }
+.k { color: var(--muted); font-size: 13px; }
+.v a { color: var(--accent); text-decoration: none; }
+.v a:hover { text-decoration: underline; }
+.pre {
+  margin: 0;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0,0,0,0.22);
+  overflow: auto;
+  max-height: 280px;
+}
